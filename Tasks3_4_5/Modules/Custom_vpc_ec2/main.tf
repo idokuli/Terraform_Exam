@@ -1,3 +1,6 @@
+data "aws_availability_zones" "available" {
+  state = "available"
+}
 resource "aws_vpc" "main_vpc" {
   cidr_block = var.vpc_cidr
   tags = {
@@ -5,9 +8,10 @@ resource "aws_vpc" "main_vpc" {
   }
 }
 resource "aws_subnet" "public_subnet" {
-  count      = var.subnet_count
-  vpc_id     = aws_vpc.main_vpc.id
-  cidr_block = "10.0.${count.index}.0/24"
+  count             = var.subnet_count
+  vpc_id            = aws_vpc.main_vpc.id
+  cidr_block        = "10.0.${count.index}.0/24"
+  availability_zone = data.aws_availability_zones.available.names[count.index % length(data.aws_availability_zones.available.names)]
   tags = {
     Name = "public_subnet-${count.index}"
   }
@@ -60,12 +64,43 @@ resource "aws_security_group" "sg" {
     Name = "sg"
   }
 }
+resource "tls_private_key" "generated" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+resource "local_file" "private_key" {
+  content         = tls_private_key.generated.private_key_pem
+  filename        = "id_rsa_generated.pem"
+  file_permission = "0400"
+}
+resource "aws_key_pair" "deployer" {
+  key_name   = "deployer-key"
+  public_key = tls_private_key.generated.public_key_openssh
+}
 resource "aws_instance" "instance1" {
   ami                         = var.ami_id
   instance_type               = var.instance_type
   subnet_id                   = aws_subnet.public_subnet[var.subnet_count - 1].id
   associate_public_ip_address = var.assign_public_ip
   vpc_security_group_ids      = [aws_security_group.sg.id]
+  key_name                    = aws_key_pair.deployer.key_name
+  monitoring                  = true
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = tls_private_key.generated.private_key_pem
+    host        = self.public_ip
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt-get update",
+      "sudo apt-get install -y software-properties-common",
+      "sudo add-apt-repository -y universe",
+      "sudo apt-get update",
+      "sudo apt-get install -y nginx stress-ng",
+      "echo '<h1>Healthy</h1>' | sudo tee /var/www/html/index.html"
+    ]
+  }
   tags = {
     Name = "instance1"
   }
