@@ -1,17 +1,18 @@
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
 }
 
 module "custom_vpc_ec2" {
   source           = "../Custom_vpc_ec2"
   vpc_cidr         = "10.0.0.0/16"
   subnet_count     = 3
-  ami_id           = "ami-0c398cb65a93047f2"
+  ami_id           = "ami-01fd6fa49060e89a6"
   instance_type    = "t3.micro"
   assign_public_ip = true
 }
 module "lb_tg_as" {
   source                 = "../LB_TG_AS"
+  aws_region             = var.aws_region
   vpc_id                 = module.custom_vpc_ec2.vpc_id
   public_subnet_ids      = module.custom_vpc_ec2.public_subnet_id
   security_group_id      = module.custom_vpc_ec2.sg_id

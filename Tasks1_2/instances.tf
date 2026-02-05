@@ -1,6 +1,6 @@
 resource "aws_instance" "instance1" {
-  ami                         = "ami-0c398cb65a93047f2"
-  instance_type               = "t3.micro"
+  ami                         = var.aws_ami
+  instance_type               = var.aws_instance_type
   subnet_id                   = aws_subnet.public_subnet.id
   associate_public_ip_address = true
   security_groups             = [aws_security_group.sg.id]

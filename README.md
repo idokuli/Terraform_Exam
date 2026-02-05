@@ -39,6 +39,7 @@ Creates VPC infrastructure with a bootstrapped EC2 instance.
 
 **Key Features**:
 - Dynamic subnet creation across multiple AZs (configurable count)
+- **Region-specific AMI auto-detection** (automatically selects the latest Ubuntu 24.04 LTS AMI for the deployment region)
 - Auto-generated SSH key pair (saved as `id_rsa_generated.pem`)
 - EC2 instance with Nginx and stress-ng pre-installed
 - Serves "Healthy" page at root
@@ -71,6 +72,10 @@ Auto-scaling infrastructure with load balancing.
 
 Orchestrates the deployment by combining both modules.
 
+**Configuration**:
+- **Dynamic Region Support**: Deploy to any AWS region via variable
+- Default region: `us-east-1` (configurable)
+
 **Flow**:
 1. Creates VPC with 3 subnets, security group, and base EC2 instance
 2. Passes VPC resources to LB_TG_AS module
@@ -91,8 +96,14 @@ Orchestrates the deployment by combining both modules.
 **Tasks 1 & 2**:
 ```bash
 cd Tasks1_2
-terraform init
-terraform plan
+# Deploy to default region (us-east-1)
+terraform apply
+
+# OR deploy to a specific region
+terraform apply -var="aws_region=eu-north-1"
+
+# OR create terraform.tfvars file
+echo 'aws_region = "ap-southeast-1"' > terraform.tfvars
 terraform apply
 ```
 
@@ -100,7 +111,15 @@ terraform apply
 ```bash
 cd Tasks3_4_5/Modules/Deployments
 terraform init
-terraform plan
+
+# Deploy to default region (us-east-1)
+terraform apply
+
+# OR deploy to a specific region
+terraform apply -var="aws_region=eu-north-1"
+
+# OR create terraform.tfvars file
+echo 'aws_region = "ap-southeast-1"' > terraform.tfvars
 terraform apply
 ```
 
@@ -159,6 +178,8 @@ curl http://<load-balancer-dns>
 ## 🔑 Key Concepts Demonstrated
 
 - ✅ Modular Terraform architecture
+- ✅ **Dynamic multi-region deployment** (configurable AWS region)
+- ✅ **Automated AMI selection** (region-specific Ubuntu images)
 - ✅ Dynamic resource creation with `count`
 - ✅ Multi-AZ deployment for high availability
 - ✅ Auto-scaling with target tracking policies
